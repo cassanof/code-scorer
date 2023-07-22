@@ -9,7 +9,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seq_len", type=int, default=1000)
-parser.add_argument("--batch_size", type=int, default=16)
+parser.add_argument("--batch_size", type=int, default=4)
 parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
 parser.add_argument("--epochs", type=int, default=1)
 parser.add_argument("--lr", type=float, default=2e-5)
@@ -22,7 +22,6 @@ parser.add_argument("--no_fp16", action="store_true")
 args = parser.parse_args()
 
 
-max_length = 1000
 dataset = datasets.load_dataset(args.dataset, split='train')
 dataset = dataset.train_test_split(test_size=0.05)
 
@@ -32,9 +31,9 @@ model = AutoModelForSequenceClassification.from_pretrained(
     args.model, num_labels=1).to("cuda")
 
 train_encodings = tokenizer(
-    dataset['train']['content'], truncation=True, padding=True, max_length=max_length)
+    dataset['train']['content'], truncation=True, padding=True, max_length=args.seq_len)
 valid_encodings = tokenizer(
-    dataset['test']['content'], truncation=True, padding=True, max_length=max_length)
+    dataset['test']['content'], truncation=True, padding=True, max_length=args.seq_len)
 
 
 class RegressionDataset(torch.utils.data.Dataset):
