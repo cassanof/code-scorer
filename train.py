@@ -1,5 +1,6 @@
 # code adapted from: https://towardsdatascience.com/linear-regression-with-hugging-face-3883fe729324
 import torch
+import wandb
 import datasets
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error
@@ -19,12 +20,13 @@ parser.add_argument("--dataset", type=str, default="Roblox/code_score_gpt35")
 parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
+parser.add_argument("--eval_ratio", type=float, default=0.1)
 parser.add_argument("--push_to_hub", type=str, default=None)
 args = parser.parse_args()
 
 
 dataset = datasets.load_dataset(args.dataset, split='train')
-dataset = dataset.train_test_split(test_size=0.05)
+dataset = dataset.train_test_split(test_size=args.eval_ratio)
 
 tokenizer = AutoTokenizer.from_pretrained(args.model)
 tokenizer.pad_token = tokenizer.eos_token
@@ -78,7 +80,7 @@ training_args = TrainingArguments(
     logging_steps=10,
     num_train_epochs=args.epochs,
     per_device_train_batch_size=args.batch_size,
-    per_device_eval_batch_size=args.batch_size // 2,
+    per_device_eval_batch_size=args.batch_size,
     gradient_accumulation_steps=args.gradient_accumulation_steps,
     weight_decay=args.weight_decay,
     learning_rate=args.lr,
@@ -98,6 +100,8 @@ trainer = Trainer(
     eval_dataset=valid_dataset,
     compute_metrics=compute_metrics_for_regression,
 )
+
+wandb.init(project="roblox")
 
 trainer.train()
 trainer.evaluate()
