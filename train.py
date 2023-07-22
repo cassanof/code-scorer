@@ -19,6 +19,7 @@ parser.add_argument("--dataset", type=str, default="Roblox/code_score_gpt35")
 parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
+parser.add_argument("--push_to_hub", type=str, default=None)
 args = parser.parse_args()
 
 
@@ -100,3 +101,5 @@ trainer = Trainer(
 
 trainer.train()
 trainer.evaluate()
+if args.push_to_hub:
+    trainer.push_to_hub(args.push_to_hub)
