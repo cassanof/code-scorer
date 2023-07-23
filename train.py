@@ -1,4 +1,3 @@
-# code adapted from: https://towardsdatascience.com/linear-regression-with-hugging-face-3883fe729324
 import torch
 import wandb
 import datasets
@@ -16,11 +15,11 @@ parser.add_argument("--epochs", type=int, default=1)
 parser.add_argument("--lr", type=float, default=2e-5)
 parser.add_argument("--weight_decay", type=float, default=0.01)
 parser.add_argument("--save_dir", type=str, default="./results")
-parser.add_argument("--dataset", type=str, default="Roblox/code_score_gpt35")
+parser.add_argument("--dataset", type=str, required=True)
 parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
-parser.add_argument("--eval_ratio", type=float, default=0.1)
+parser.add_argument("--eval_ratio", type=float, default=0.05)
 parser.add_argument("--push_to_hub", type=str, default=None)
 args = parser.parse_args()
 
@@ -57,13 +56,11 @@ class RegressionDataset(torch.utils.data.Dataset):
 train_dataset = RegressionDataset(train_encodings, dataset['train']['score'])
 valid_dataset = RegressionDataset(valid_encodings, dataset['test']['score'])
 
-print("train_dataset ex0:\n", train_dataset.__getitem__(0))
-
 
 def compute_metrics_for_regression(eval_pred):
     logits, labels = eval_pred
+    logits = logits[0]
     labels = labels.reshape(-1, 1)
-
     mse = mean_squared_error(labels, logits)
     rmse = mean_squared_error(labels, logits, squared=False)
     mae = mean_absolute_error(labels, logits)
@@ -107,3 +104,7 @@ trainer.train()
 trainer.evaluate()
 if args.push_to_hub:
     trainer.push_to_hub(args.push_to_hub)
+
+# save model and tokenizer
+trainer.save_model(args.save_dir + "/best")
+tokenizer.save_pretrained(args.save_dir + "/best")
