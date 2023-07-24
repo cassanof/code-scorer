@@ -14,6 +14,8 @@ class CodeScorer:
     def score(self, codes: Union[str, List[str]]) -> List[float]:
         if isinstance(codes, str):
             codes = [codes]
+        if len(codes) == 0:
+            return []
         self.model.eval()
         with torch.no_grad():
             inputs = self.tokenizer(
