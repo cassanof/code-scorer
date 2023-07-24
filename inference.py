@@ -132,5 +132,4 @@ def is_configurable(cls) -> bool:
                 break
             lines.append(line)
         code = "\n".join(lines)
-        print(code)
         print(scorer.score(code))
