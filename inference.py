@@ -1,3 +1,4 @@
+from typing import List, Union
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
@@ -10,7 +11,7 @@ class CodeScorer:
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.device = device
 
-    def score(self, codes):
+    def score(self, codes: Union[str, List[str]]) -> List[float]:
         if isinstance(codes, str):
             codes = [codes]
         self.model.eval()
@@ -120,3 +121,16 @@ def is_configurable(cls) -> bool:
 
     print("doing all at once")
     print(scorer.score(funcs))
+    while True:
+        print("now accepting from stdin (end with \"<END>\" on a line)")
+        lines = []
+        while True:
+            line = input()
+            if line.endswith("<END>"):
+                line = line[:-5]
+                lines.append(line)
+                break
+            lines.append(line)
+        code = "\n".join(lines)
+        print(code)
+        print(scorer.score(code))
