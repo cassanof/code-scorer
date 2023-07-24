@@ -10,11 +10,13 @@ class CodeScorer:
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.device = device
 
-    def score(self, code):
+    def score(self, codes):
+        if isinstance(codes, str):
+            codes = [codes]
         self.model.eval()
         with torch.no_grad():
             inputs = self.tokenizer(
-                code,
+                codes,
                 truncation=True,
                 padding=True,
                 max_length=self.model.config.max_position_embeddings - 2,
@@ -22,7 +24,8 @@ class CodeScorer:
             ).to(self.device)
             outputs = self.model(**inputs)
             logits = outputs.logits
-            return logits.item()
+            preds = [float(x) for x in logits.squeeze(-1).tolist()]
+            return preds
 
 
 if __name__ == "__main__":
@@ -114,3 +117,6 @@ def is_configurable(cls) -> bool:
         name = func[name:].split("\n")[0]
         print(name)
         print(scorer.score(func))
+
+    print("doing all at once")
+    print(scorer.score(funcs))
