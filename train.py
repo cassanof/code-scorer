@@ -21,7 +21,6 @@ parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
 parser.add_argument("--eval_ratio", type=float, default=0.05)
-parser.add_argument("--push_to_hub", type=str, default=None)
 args = parser.parse_args()
 
 
@@ -105,8 +104,6 @@ wandb.init(project="roblox")
 
 trainer.train()
 trainer.evaluate()
-if args.push_to_hub:
-    trainer.push_to_hub(args.push_to_hub)
 
 # save model and tokenizer
 trainer.save_model(args.save_dir + "/best")
