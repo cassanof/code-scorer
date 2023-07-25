@@ -16,6 +16,7 @@ parser.add_argument("--lr", type=float, default=2e-5)
 parser.add_argument("--weight_decay", type=float, default=0.01)
 parser.add_argument("--save_dir", type=str, default="./results")
 parser.add_argument("--dataset", type=str, required=True)
+parser.add_argument("--score_col", type=str, default="score")
 parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
@@ -53,8 +54,10 @@ class RegressionDataset(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-train_dataset = RegressionDataset(train_encodings, dataset['train']['score'])
-valid_dataset = RegressionDataset(valid_encodings, dataset['test']['score'])
+train_dataset = RegressionDataset(
+    train_encodings, dataset['train'][args.score_col])
+valid_dataset = RegressionDataset(
+    valid_encodings, dataset['test'][args.score_col])
 
 
 def compute_metrics_for_regression(eval_pred):
