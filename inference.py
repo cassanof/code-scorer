@@ -31,6 +31,17 @@ class CodeScorer:
             return preds
 
 
+def score_model_factory(model_type: str, model_name: str) -> CodeScorer:
+    if model_type == "regression":
+        return CodeScorer(model_name)
+    elif model_type == "reward":
+        raise NotImplementedError("TODO: Harry implement here")
+    elif model_type == "reward-regression":
+        raise NotImplementedError("TODO: Harry implement here")
+    else:
+        raise ValueError(f"Unknown model type {model_type}")
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
