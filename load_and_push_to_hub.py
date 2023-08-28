@@ -10,5 +10,5 @@ args = parser.parse_args()
 tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
 model = AutoModelForSequenceClassification.from_pretrained(args.model)
 
-model.push_to_hub(args.push)
-tokenizer.push_to_hub(args.push)
+model.push_to_hub(args.push, private=True)
+tokenizer.push_to_hub(args.push, private=True)
