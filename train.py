@@ -34,9 +34,9 @@ model = AutoModelForSequenceClassification.from_pretrained(
     args.model, num_labels=1).to("cuda")
 
 train_encodings = tokenizer(
-    dataset['train'][args.content], truncation=True, padding=True, max_length=args.seq_len)
+    dataset['train'][args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 valid_encodings = tokenizer(
-    dataset['test'][args.content], truncation=True, padding=True, max_length=args.seq_len)
+    dataset['test'][args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 
 
 class RegressionDataset(torch.utils.data.Dataset):
