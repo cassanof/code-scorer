@@ -17,6 +17,7 @@ parser.add_argument("--weight_decay", type=float, default=0.01)
 parser.add_argument("--save_dir", type=str, default="./results")
 parser.add_argument("--dataset", type=str, required=True)
 parser.add_argument("--score_col", type=str, default="score")
+parser.add_argument("--content_col", type=str, default="content")
 parser.add_argument("--model", type=str, default="bigcode/starencoder")
 parser.add_argument("--bf16", action="store_true")
 parser.add_argument("--no_fp16", action="store_true")
@@ -33,9 +34,9 @@ model = AutoModelForSequenceClassification.from_pretrained(
     args.model, num_labels=1).to("cuda")
 
 train_encodings = tokenizer(
-    dataset['train']['content'], truncation=True, padding=True, max_length=args.seq_len)
+    dataset['train'][args.content], truncation=True, padding=True, max_length=args.seq_len)
 valid_encodings = tokenizer(
-    dataset['test']['content'], truncation=True, padding=True, max_length=args.seq_len)
+    dataset['test'][args.content], truncation=True, padding=True, max_length=args.seq_len)
 
 
 class RegressionDataset(torch.utils.data.Dataset):
