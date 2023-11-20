@@ -10,6 +10,8 @@ class CodeScorer:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.device = device
+        self.max_len = self.model.config.max_position_embeddings - 2
+        self.overlap = self.max_len // 2  # for windowed scoring
 
     def score(self, codes: Union[str, List[str]]) -> List[float]:
         if isinstance(codes, str):
@@ -20,24 +22,38 @@ class CodeScorer:
         with torch.no_grad():
             inputs = self.tokenizer(
                 codes,
-                truncation=True,
                 padding=True,
-                max_length=self.model.config.max_position_embeddings - 2,
-                return_tensors="pt"
+                truncation=True,
+                max_length=self.max_len,
+                return_tensors="pt",
             ).to(self.device)
             outputs = self.model(**inputs)
             logits = outputs.logits
             preds = [float(x) for x in logits.squeeze(-1).tolist()]
             return preds
 
+    def score_windowed(self, code: str) -> float:
+        # NOTE: can't batch because padding messes up the windowing,
+        # gives wildly different scores
+        self.model.eval()
+        with torch.no_grad():
+            orig_inputs = self.tokenizer(
+                [code],
+            )["input_ids"]
+            # window inputs into self.max_len chunks with overlap of self.overlap
+            inputs = [inp[i:i+self.max_len]
+                      for inp in orig_inputs for i in range(0, len(inp), self.max_len-self.overlap)]
+            outputs = []
+            for inp in inputs:
+                input_ids = torch.tensor(inp).unsqueeze(0).to(self.device)
+                outputs.append(self.model(input_ids).logits)
+            preds = torch.cat(outputs, dim=1).mean(dim=1)
+            return float(preds[0])
+
 
 def score_model_factory(model_type: str, model_name: str) -> CodeScorer:
     if model_type == "regression":
         return CodeScorer(model_name)
-    elif model_type == "reward":
-        raise NotImplementedError("TODO: Harry implement here")
-    elif model_type == "reward-regression":
-        raise NotImplementedError("TODO: Harry implement here")
     else:
         raise ValueError(f"Unknown model type {model_type}")
 
@@ -132,8 +148,22 @@ def is_configurable(cls) -> bool:
         print(name)
         print(scorer.score(func))
 
-    print("doing all at once")
+    print("### WINDOWED SCORING ###")
+
+    funcs = [FUNC1, FUNC2, FUNC3, FUNC4, FUNC5]
+    for func in funcs:
+        # get fn name
+        name = func.find("local function")
+        if name == -1:
+            name = func.find("def")
+        assert name != -1
+        name = func[name:].split("\n")[0]
+        print(name)
+        print(scorer.score_windowed(func))
+
+    print("### DOING A BATCH ###")
     print(scorer.score(funcs))
+    print("### STDIN SCORING ###")
     while True:
         print("now accepting from stdin (end with \"<END>\" on a line)")
         lines = []
