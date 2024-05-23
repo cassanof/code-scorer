@@ -11,7 +11,7 @@ from transformers import (
     TrainerState,
     TrainerControl,
 )
-from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error, root_mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error, root_mean_squared_error, f1_score, precision_score, recall_score, accuracy_score
 import numpy as np
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
@@ -50,6 +50,25 @@ def compute_metrics_for_regression(eval_pred):
     return {"mse": mse, "rmse": rmse, "mae": mae, "r2": r2, "smape": smape}
 
 
+def compute_metrics_for_classification(eval_pred):
+    # f-1 score, precision, recall, accuracy
+    logits, labels = eval_pred
+    # if logits is a tuple
+    if isinstance(logits, tuple):
+        logits = logits[0]
+    logits = logits.squeeze()
+    labels = labels.reshape(-1)
+
+    # convert logits to predictions
+    predictions = np.argmax(logits, axis=1)
+    f1 = f1_score(labels, predictions, average='weighted')
+    precision = precision_score(labels, predictions, average='weighted')
+    recall = recall_score(labels, predictions, average='weighted')
+    accuracy = accuracy_score(labels, predictions)
+
+    return {"f1": f1, "precision": precision, "recall": recall, "accuracy": accuracy}
+
+
 def dtype_from_str(dtype_str):
     """
     Converts the string representation of a dtype to a torch dtype.
@@ -73,6 +92,20 @@ class RegressionDataset(torch.utils.data.Dataset):
         item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
         item["labels"] = torch.tensor([self.labels[idx]])
         item["labels"] = float(item["labels"])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+
+class ClassificationDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
+        item["labels"] = torch.tensor([self.labels[idx]])
         return item
 
     def __len__(self):
@@ -126,6 +159,12 @@ def model_load_extra_kwargs(args):
     if args.attention_dropout is not None:  # some models dont support this
         model_extra_kwargs["attention_dropout"] = args.attention_dropout
 
+    if args.num_labels > 1:
+        model_extra_kwargs["id2label"] = {
+            i: str(i) for i in range(args.num_labels)}
+        model_extra_kwargs["label2id"] = {
+            str(i): i for i in range(args.num_labels)}
+
     return model_extra_kwargs
 
 
@@ -147,9 +186,14 @@ def load_datasets(args, tokenizer):
     valid_encodings = tokenizer(
         val[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 
-    train_dataset = RegressionDataset(
+    if args.num_labels > 1:
+        dataset_cls = ClassificationDataset
+    else:
+        dataset_cls = RegressionDataset
+
+    train_dataset = dataset_cls(
         train_encodings, train[args.score_col])
-    valid_dataset = RegressionDataset(
+    valid_dataset = dataset_cls(
         valid_encodings, val[args.score_col])
     return train_dataset, valid_dataset
 
@@ -204,12 +248,17 @@ def main(args):
     if is_main(args):
         init_wandb(args)
 
+    if args.num_labels > 1:
+        compute_metrics = compute_metrics_for_classification
+    else:
+        compute_metrics = compute_metrics_for_regression
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset if has_eval else None,
-        compute_metrics=compute_metrics_for_regression,
+        compute_metrics=compute_metrics,
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
 
