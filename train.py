@@ -129,7 +129,7 @@ def model_load_extra_kwargs(args):
 def load_datasets(args, tokenizer):
     dataset = datasets.load_dataset(args.dataset, split='train')
     if not args.no_shuffle_train:
-        dataset = dataset.shuffle()
+        dataset = dataset.shuffle(seed=42)
     dataset = dataset.train_test_split(test_size=args.eval_ratio)
 
     train_encodings = tokenizer(
