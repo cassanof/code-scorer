@@ -34,6 +34,9 @@ class SaveTokenizerCallback(TrainerCallback):
 
 def compute_metrics_for_regression(eval_pred):
     logits, labels = eval_pred
+    # if logits is a tuple
+    if isinstance(logits, tuple):
+        logits = logits[0]
     logits = logits.squeeze()
     labels = labels.reshape(-1)
 
