@@ -198,6 +198,9 @@ def main(args):
         model = model.to(torch.device("cuda")
                          if torch.cuda.is_available() else torch.device("cpu"))
 
+    if is_main(args):
+        init_wandb(args)
+
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -206,8 +209,6 @@ def main(args):
         compute_metrics=compute_metrics_for_regression,
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
-
-    init_wandb(args)
 
     trainer.train()
     if has_eval:
