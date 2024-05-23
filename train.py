@@ -83,6 +83,8 @@ def is_main(args):
 
 
 def init_wandb(args):
+    if args.no_wandb:
+        return
     import wandb
     wandb_name = None
     if not os.getenv("WANDB_NAME"):
