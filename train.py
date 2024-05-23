@@ -127,15 +127,22 @@ def model_load_extra_kwargs(args):
 
 
 def load_datasets(args, tokenizer):
-    dataset = datasets.load_dataset(args.dataset, split='train')
+    dataset = datasets.load_dataset(args.dataset, split=args.train_split)
     if not args.no_shuffle_train:
         dataset = dataset.shuffle(seed=42)
-    dataset = dataset.train_test_split(test_size=args.eval_ratio)
+
+    if args.eval_dataset:
+        train = dataset
+        val = datasets.load_dataset(args.eval_dataset, split=args.eval_split)
+    else:
+        dataset = dataset.train_test_split(test_size=args.eval_ratio)
+        train = dataset['train']
+        val = dataset['test']
 
     train_encodings = tokenizer(
-        dataset['train'][args.content_col], truncation=True, padding=True, max_length=args.seq_len)
+        train[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
     valid_encodings = tokenizer(
-        dataset['test'][args.content_col], truncation=True, padding=True, max_length=args.seq_len)
+        val[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 
     train_dataset = RegressionDataset(
         train_encodings, dataset['train'][args.score_col])
@@ -226,6 +233,12 @@ if __name__ == '__main__':
                         help="Directory to save the model checkpoints.")
     parser.add_argument("--dataset", type=str,
                         required=True, help="Dataset name.")
+    parser.add_argument("--eval_dataset", type=str, default=None,
+                        help="Evaluation dataset name.")
+    parser.add_argument("--train_split", type=str, default="train",
+                        help="Training split name for --dataset.")
+    parser.add_argument("--eval_split", type=str, default="test",
+                        help="Test split name for --eval_dataset.")
     parser.add_argument("--score_col", type=str,
                         default="score", help="Column name for the score.")
     parser.add_argument("--content_col", type=str,
