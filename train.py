@@ -145,7 +145,10 @@ def load_datasets(args, tokenizer):
 
 def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model)
-    tokenizer.pad_token = tokenizer.eos_token
+
+    if tokenizer.pad_token is None:  # default to eos token
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
 
     print("Process loaded with rank:", get_rank(args))
 
@@ -181,6 +184,7 @@ def main(args):
         trust_remote_code=True,
         **model_load_extra_kwargs(args)
     )
+    model.config.pad_token_id = tokenizer.pad_token_id
 
     if not args.deepspeed:
         model = model.to(torch.device("cuda")
