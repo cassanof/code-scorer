@@ -82,6 +82,13 @@ def is_main(args):
     return args.local_rank in [-1, 0]
 
 
+def get_rank(args):
+    """
+    Returns the rank of the process.
+    """
+    return args.local_rank if args.local_rank != -1 else 0
+
+
 def init_wandb(args):
     if args.no_wandb:
         return
@@ -140,12 +147,14 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     tokenizer.pad_token = tokenizer.eos_token
 
+    print("Process loaded with rank:", get_rank(args))
+
     train_dataset, valid_dataset = load_datasets(args, tokenizer)
     has_eval = len(valid_dataset) > 0
 
     training_args = TrainingArguments(
         output_dir=args.save_dir,
-        report_to="wandb" if not args.no_wandb else None,
+        report_to=["wandb"] if not args.no_wandb else [],
         logging_steps=10,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
