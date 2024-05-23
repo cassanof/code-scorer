@@ -2,9 +2,34 @@ import torch
 import os
 import time
 import datasets
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    Trainer,
+    TrainingArguments,
+    TrainerCallback,
+    TrainerState,
+    TrainerControl,
+)
 from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error
 import numpy as np
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+
+
+class SaveTokenizerCallback(TrainerCallback):
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+
+    def on_save(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        checkpoint_folder = os.path.join(
+            args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
+        self.tokenizer.save_pretrained(checkpoint_folder)
 
 
 def compute_metrics_for_regression(eval_pred):
@@ -134,6 +159,7 @@ def main(args):
         bf16=args.bf16,
         fp16=(not args.no_fp16),
         deepspeed=args.deepspeed,
+        ddp_find_unused_parameters=False,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -145,12 +171,17 @@ def main(args):
         **model_load_extra_kwargs(args)
     )
 
+    if not args.deepspeed:
+        model = model.to(torch.device("cuda")
+                         if torch.cuda.is_available() else torch.device("cpu"))
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset if has_eval else None,
         compute_metrics=compute_metrics_for_regression,
+        callbacks=[SaveTokenizerCallback(tokenizer)]
     )
 
     init_wandb(args)
@@ -206,7 +237,7 @@ if __name__ == '__main__':
     parser.add_argument("--deepspeed", type=str, default=None,
                         help="DeepSpeed configuration file.")
     parser.add_argument("--torch_dtype", type=str, default=None, choices=[
-                    "float16", "bfloat16", "float32"], help="Force the model to use a certain dtype.")
+        "float16", "bfloat16", "float32"], help="Force the model to use a certain dtype.")
     parser.add_argument("--fa2", action="store_true",
                         help="Use FlashAttention2.")
     parser.add_argument("--no_wandb", action="store_true",
