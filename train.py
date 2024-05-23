@@ -11,7 +11,7 @@ from transformers import (
     TrainerState,
     TrainerControl,
 )
-from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error, root_mean_squared_error
 import numpy as np
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
@@ -38,7 +38,7 @@ def compute_metrics_for_regression(eval_pred):
     labels = labels.reshape(-1)
 
     mse = mean_squared_error(labels, logits)
-    rmse = mean_squared_error(labels, logits, squared=False)
+    rmse = root_mean_squared_error(labels, logits)
     mae = mean_absolute_error(labels, logits)
     r2 = r2_score(labels, logits)
     smape = 1/len(labels) * np.sum(2 * np.abs(logits-labels) /
