@@ -145,9 +145,9 @@ def load_datasets(args, tokenizer):
         val[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 
     train_dataset = RegressionDataset(
-        train_encodings, dataset['train'][args.score_col])
+        train_encodings, train[args.score_col])
     valid_dataset = RegressionDataset(
-        valid_encodings, dataset['test'][args.score_col])
+        valid_encodings, val[args.score_col])
     return train_dataset, valid_dataset
 
 
