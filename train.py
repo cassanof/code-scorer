@@ -34,14 +34,15 @@ class SaveTokenizerCallback(TrainerCallback):
 
 def compute_metrics_for_regression(eval_pred):
     logits, labels = eval_pred
-    logits = logits[0]
-    labels = labels.reshape(-1, 1)
+    logits = logits.squeeze()
+    labels = labels.reshape(-1)
+
     mse = mean_squared_error(labels, logits)
     rmse = mean_squared_error(labels, logits, squared=False)
     mae = mean_absolute_error(labels, logits)
     r2 = r2_score(labels, logits)
     smape = 1/len(labels) * np.sum(2 * np.abs(logits-labels) /
-                                   (np.abs(labels) + np.abs(logits))*100)
+                                   (np.abs(labels) + np.abs(logits)) * 100)
 
     return {"mse": mse, "rmse": rmse, "mae": mae, "r2": r2, "smape": smape}
 
