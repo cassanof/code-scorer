@@ -63,7 +63,7 @@ def init_wandb(args):
     if not os.getenv("WANDB_NAME"):
         date = time.strftime("%Y-%m-%d-%H-%M")
         model_name = args.model.rstrip("/").split("/")[-1]
-        dataset_name = args.dataset_name.rstrip("/").split("/")[-1]
+        dataset_name = args.dataset.rstrip("/").split("/")[-1]
         wandb_name = f"{model_name}_{dataset_name}_{date}"
     try:
         wandb.init(name=wandb_name)
