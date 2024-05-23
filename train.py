@@ -200,6 +200,7 @@ def load_datasets(args, tokenizer):
 
 def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model)
+    torch._dynamo.config.optimize_ddp=False
 
     if tokenizer.pad_token is None:  # default to eos token
         tokenizer.pad_token = tokenizer.eos_token
@@ -229,6 +230,7 @@ def main(args):
         fp16=(not args.no_fp16),
         deepspeed=args.deepspeed,
         ddp_find_unused_parameters=False,
+        torch_compile_backend="inductor" if args.compile else None,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -318,6 +320,8 @@ if __name__ == '__main__':
     parser.add_argument("--num_labels", type=int, default=1)
     parser.add_argument("--deepspeed", type=str, default=None,
                         help="DeepSpeed configuration file.")
+    parser.add_argument("--compile", action="store_true",
+                        help="Compiles the model with PyTorch.")
     parser.add_argument("--torch_dtype", type=str, default=None, choices=[
         "float16", "bfloat16", "float32"], help="Force the model to use a certain dtype.")
     parser.add_argument("--fa2", action="store_true",
