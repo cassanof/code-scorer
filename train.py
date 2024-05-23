@@ -205,6 +205,8 @@ if __name__ == '__main__':
     parser.add_argument("--num_labels", type=int, default=1)
     parser.add_argument("--deepspeed", type=str, default=None,
                         help="DeepSpeed configuration file.")
+    parser.add_argument("--torch_dtype", type=str, default=None, choices=[
+                    "float16", "bfloat16", "float32"], help="Force the model to use a certain dtype.")
     parser.add_argument("--fa2", action="store_true",
                         help="Use FlashAttention2.")
     parser.add_argument("--no_wandb", action="store_true",
