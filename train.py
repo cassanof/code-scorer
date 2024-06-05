@@ -232,7 +232,8 @@ def main(args):
         deepspeed=args.deepspeed,
         ddp_find_unused_parameters=False,
         torch_compile_backend="inductor" if args.compile else None,
-        push_to_hub=args.push,
+        push_to_hub=args.push != None,
+        push_to_hub_model_id=args.push,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
