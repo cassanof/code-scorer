@@ -1,4 +1,5 @@
 import torch
+import threading
 import os
 import time
 import datasets
@@ -200,7 +201,7 @@ def load_datasets(args, tokenizer):
 
 def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model)
-    torch._dynamo.config.optimize_ddp=False
+    torch._dynamo.config.optimize_ddp = False
 
     if tokenizer.pad_token is None:  # default to eos token
         tokenizer.pad_token = tokenizer.eos_token
@@ -231,6 +232,7 @@ def main(args):
         deepspeed=args.deepspeed,
         ddp_find_unused_parameters=False,
         torch_compile_backend="inductor" if args.compile else None,
+        push_to_hub=args.push,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -284,7 +286,7 @@ if __name__ == '__main__':
                         help="Learning rate.")
     parser.add_argument("--weight_decay", type=float,
                         default=0.01, help="Weight decay.")
-    parser.add_argument("--save_dir", type=str, default="./results",
+    parser.add_argument("--save_dir", type=str, default=None,
                         help="Directory to save the model checkpoints.")
     parser.add_argument("--dataset", type=str,
                         required=True, help="Dataset name.")
@@ -326,6 +328,7 @@ if __name__ == '__main__':
         "float16", "bfloat16", "float32"], help="Force the model to use a certain dtype.")
     parser.add_argument("--fa2", action="store_true",
                         help="Use FlashAttention2.")
+    parser.add_argument("--push", type=str, default=None)
     parser.add_argument("--no_wandb", action="store_true",
                         help="Do not use wandb.")
     args = parser.parse_args()
