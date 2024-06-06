@@ -199,6 +199,15 @@ def load_datasets(args, tokenizer):
     return train_dataset, valid_dataset
 
 
+def freeze_model(model):
+    for param in model.parameters():
+        param.requires_grad = False
+    if hasattr(model, "score"):
+        model.score.requires_grad = True
+    elif hasattr(model, "classifier"):
+        model.classifier.requires_grad = True
+
+
 def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     torch._dynamo.config.optimize_ddp = False
@@ -249,6 +258,9 @@ def main(args):
     if not args.deepspeed:
         model = model.to(torch.device("cuda")
                          if torch.cuda.is_available() else torch.device("cpu"))
+
+    if args.linear_probe:
+        freeze_model(model)
 
     if is_main(args):
         init_wandb(args)
@@ -321,6 +333,8 @@ if __name__ == '__main__':
     parser.add_argument("--local-rank", type=int, default=0)
     parser.add_argument("--local_rank", type=int, default=-1)
     parser.add_argument("--num_labels", type=int, default=1)
+    parser.add_argument("--linear-probe", action="store_true",
+                        help="Trains only the linear layer. Freezes the rest of the model.")
     parser.add_argument("--deepspeed", type=str, default=None,
                         help="DeepSpeed configuration file.")
     parser.add_argument("--compile", action="store_true",
