@@ -278,11 +278,10 @@ def main(args):
         train_dataset=train_dataset,
         eval_dataset=valid_dataset if has_eval else None,
         compute_metrics=compute_metrics,
-        resume_from_checkpoint=True,
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
     if has_eval:
         trainer.evaluate()
 
