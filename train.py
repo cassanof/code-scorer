@@ -176,7 +176,7 @@ def load_datasets(args, tokenizer):
         val = dataset['test']
 
     data_collator = DataCollatorWithPadding(
-        tokenizer=tokenizer, padding="max_length", max_length=args.seq_len)
+        tokenizer=tokenizer, padding="max_length" if args.batch_size > 1 else False, max_length=args.seq_len)
     train_dataset = IterableClassificationDataset(
         tokenizer, train, args.content_col, args.score_col, args.seq_len)
     valid_dataset = IterableClassificationDataset(
