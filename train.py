@@ -178,7 +178,7 @@ def load_datasets(args, tokenizer):
     valid_dataset = IterableClassificationDataset(
         tokenizer, val, args.content_col, args.score_col, args.seq_len)
 
-    return train_loader, valid_loader, data_collator
+    return train_dataset, valid_dataset, data_collator
 
 
 
