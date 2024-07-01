@@ -95,7 +95,7 @@ class IterableClassificationDataset(IterableDataset):
         self.max_length = max_length
 
     def __iter__(self):
-        for ex in datasets.load_dataset(self.data_file, split='train'):
+        for ex in self.dataset:
             inputs = self.tokenizer(ex[self.content_col], truncation=True, padding=False, max_length=self.max_length)
             inputs['labels'] = ex[self.label_col]
             yield inputs
