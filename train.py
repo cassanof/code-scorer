@@ -281,7 +281,7 @@ def main(args):
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
 
-    trainer.train(resume_from_checkpoint=True)
+    trainer.train()
     if has_eval:
         trainer.evaluate()
 
