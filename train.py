@@ -98,7 +98,7 @@ class IterableClassificationDataset(IterableDataset):
     def __iter__(self):
         for ex in self.dataset:
             inputs = self.tokenizer(
-                ex[self.content_col], truncation=True, padding="max_length", max_length=self.max_length)
+                ex[self.content_col], truncation=True, padding=False, max_length=self.max_length)
             inputs['labels'] = ex[self.label_col]
             yield inputs
 
@@ -175,12 +175,14 @@ def load_datasets(args, tokenizer):
         train = dataset['train']
         val = dataset['test']
 
+    data_collator = DataCollatorWithPadding(
+        tokenizer=tokenizer, padding="max_length", max_length=args.seq_len)
     train_dataset = IterableClassificationDataset(
         tokenizer, train, args.content_col, args.score_col, args.seq_len)
     valid_dataset = IterableClassificationDataset(
         tokenizer, val, args.content_col, args.score_col, args.seq_len)
 
-    return train_dataset, valid_dataset
+    return train_dataset, valid_dataset, data_collator
 
 
 def freeze_model(model):
@@ -204,7 +206,7 @@ def main(args):
 
     print("Process loaded with rank:", get_rank(args))
 
-    train_dataset, valid_dataset = load_datasets(args, tokenizer)
+    train_dataset, valid_dataset, collator = load_datasets(args, tokenizer)
     has_eval = len(valid_dataset) > 0
 
     training_args = TrainingArguments(
@@ -230,6 +232,7 @@ def main(args):
         torch_compile_backend="inductor" if args.compile else None,
         push_to_hub=args.push != None,
         push_to_hub_model_id=args.push,
+        group_by_length=True,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -262,6 +265,7 @@ def main(args):
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset if has_eval else None,
+        data_collator=collator,
         compute_metrics=compute_metrics,
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
