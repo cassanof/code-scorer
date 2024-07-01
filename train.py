@@ -86,6 +86,7 @@ def dtype_from_str(dtype_str):
     else:
         raise ValueError(f"Invalid dtype: {dtype_str}")
 
+
 class IterableClassificationDataset(IterableDataset):
     def __init__(self, tokenizer, dataset, content_col, label_col, max_length=4096):
         self.tokenizer = tokenizer
@@ -96,12 +97,14 @@ class IterableClassificationDataset(IterableDataset):
 
     def __iter__(self):
         for ex in self.dataset:
-            inputs = self.tokenizer(ex[self.content_col], truncation=True, padding=False, max_length=self.max_length)
+            inputs = self.tokenizer(
+                ex[self.content_col], truncation=True, padding=False, max_length=self.max_length)
             inputs['labels'] = ex[self.label_col]
             yield inputs
 
     def __len__(self):
         return len(self.dataset)
+
 
 def is_main(args):
     """
@@ -172,14 +175,14 @@ def load_datasets(args, tokenizer):
         train = dataset['train']
         val = dataset['test']
 
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    data_collator = DataCollatorWithPadding(
+        tokenizer=tokenizer, padding="longest", max_length=args.seq_len)
     train_dataset = IterableClassificationDataset(
         tokenizer, train, args.content_col, args.score_col, args.seq_len)
     valid_dataset = IterableClassificationDataset(
         tokenizer, val, args.content_col, args.score_col, args.seq_len)
 
     return train_dataset, valid_dataset, data_collator
-
 
 
 def freeze_model(model):
