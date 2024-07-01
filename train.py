@@ -178,11 +178,7 @@ def load_datasets(args, tokenizer):
     valid_dataset = IterableClassificationDataset(
         tokenizer, val, args.content_col, args.score_col, args.seq_len)
 
-    # loader
-    train_loader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=args.batch_size)
-    valid_loader = DataLoader(valid_dataset, collate_fn=data_collator, batch_size=args.batch_size)
-
-    return train_loader, valid_loader
+    return train_loader, valid_loader, data_collator
 
 
 
@@ -207,7 +203,7 @@ def main(args):
 
     print("Process loaded with rank:", get_rank(args))
 
-    train_dataset, valid_dataset = load_datasets(args, tokenizer)
+    train_dataset, valid_dataset, collator = load_datasets(args, tokenizer)
     has_eval = len(valid_dataset) > 0
 
     training_args = TrainingArguments(
@@ -265,6 +261,7 @@ def main(args):
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset if has_eval else None,
+        data_collator=collator,
         compute_metrics=compute_metrics,
         callbacks=[SaveTokenizerCallback(tokenizer)]
     )
