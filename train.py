@@ -100,6 +100,9 @@ class IterableClassificationDataset(IterableDataset):
             inputs['labels'] = ex[self.label_col]
             yield inputs
 
+    def __len__(self):
+        return len(self.dataset)
+
 def is_main(args):
     """
     Returns True if the process is the main process.
