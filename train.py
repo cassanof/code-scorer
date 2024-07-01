@@ -83,22 +83,6 @@ def dtype_from_str(dtype_str):
     else:
         raise ValueError(f"Invalid dtype: {dtype_str}")
 
-
-class RegressionDataset(torch.utils.data.Dataset):
-    def __init__(self, encodings, labels):
-        self.encodings = encodings
-        self.labels = labels
-
-    def __getitem__(self, idx):
-        item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-        item["labels"] = torch.tensor([self.labels[idx]])
-        item["labels"] = float(item["labels"])
-        return item
-
-    def __len__(self):
-        return len(self.labels)
-
-
 class ClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, encodings, labels):
         self.encodings = encodings
@@ -187,14 +171,9 @@ def load_datasets(args, tokenizer):
     valid_encodings = tokenizer(
         val[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
 
-    if args.num_labels > 1:
-        dataset_cls = ClassificationDataset
-    else:
-        dataset_cls = RegressionDataset
-
-    train_dataset = dataset_cls(
+    train_dataset = ClassificationDataset(
         train_encodings, train[args.score_col])
-    valid_dataset = dataset_cls(
+    valid_dataset = ClassificationDataset(
         valid_encodings, val[args.score_col])
     return train_dataset, valid_dataset
 
@@ -231,6 +210,7 @@ def main(args):
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        gradient_checkpointing=args.no_gradient_checkpointing,
         weight_decay=args.weight_decay,
         learning_rate=args.lr,
         lr_scheduler_type=args.lr_scheduler_type,
