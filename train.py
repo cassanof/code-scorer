@@ -15,6 +15,9 @@ from transformers import (
 from sklearn.metrics import mean_squared_error, r2_score, mean_squared_error, mean_absolute_error, root_mean_squared_error, f1_score, precision_score, recall_score, accuracy_score
 import numpy as np
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+from torch.utils.data import IterableDataset
+from transformers import DataCollatorWithPadding
+from torch.utils.data import DataLoader
 
 
 class SaveTokenizerCallback(TrainerCallback):
@@ -83,19 +86,19 @@ def dtype_from_str(dtype_str):
     else:
         raise ValueError(f"Invalid dtype: {dtype_str}")
 
-class ClassificationDataset(torch.utils.data.Dataset):
-    def __init__(self, encodings, labels):
-        self.encodings = encodings
-        self.labels = labels
+class IterableClassificationDataset(IterableDataset):
+    def __init__(self, tokenizer, dataset, content_col, label_col, max_length=4096):
+        self.tokenizer = tokenizer
+        self.dataset = dataset
+        self.content_col = content_col
+        self.label_col = label_col
+        self.max_length = max_length
 
-    def __getitem__(self, idx):
-        item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-        item["labels"] = torch.tensor([self.labels[idx]])
-        return item
-
-    def __len__(self):
-        return len(self.labels)
-
+    def __iter__(self):
+        for ex in datasets.load_dataset(self.data_file, split='train'):
+            inputs = self.tokenizer(ex[self.content_col], truncation=True, padding=False, max_length=self.max_length)
+            inputs['labels'] = ex[self.label_col]
+            yield inputs
 
 def is_main(args):
     """
@@ -166,16 +169,18 @@ def load_datasets(args, tokenizer):
         train = dataset['train']
         val = dataset['test']
 
-    train_encodings = tokenizer(
-        train[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
-    valid_encodings = tokenizer(
-        val[args.content_col], truncation=True, padding=True, max_length=args.seq_len)
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    train_dataset = IterableClassificationDataset(
+        tokenizer, train, args.content_col, args.score_col, args.seq_len)
+    valid_dataset = IterableClassificationDataset(
+        tokenizer, val, args.content_col, args.score_col, args.seq_len)
 
-    train_dataset = ClassificationDataset(
-        train_encodings, train[args.score_col])
-    valid_dataset = ClassificationDataset(
-        valid_encodings, val[args.score_col])
-    return train_dataset, valid_dataset
+    # loader
+    train_loader = DataLoader(train_dataset, collate_fn=data_collator, batch_size=args.batch_size)
+    valid_loader = DataLoader(valid_dataset, collate_fn=data_collator, batch_size=args.batch_size)
+
+    return train_loader, valid_loader
+
 
 
 def freeze_model(model):
