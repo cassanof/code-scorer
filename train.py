@@ -230,7 +230,6 @@ def main(args):
         torch_compile_backend="inductor" if args.compile else None,
         push_to_hub=args.push != None,
         push_to_hub_model_id=args.push,
-        group_by_length=True,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
