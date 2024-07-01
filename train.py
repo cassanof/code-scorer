@@ -209,7 +209,7 @@ def main(args):
     training_args = TrainingArguments(
         output_dir=args.save_dir,
         report_to=["wandb"] if not args.no_wandb else [],
-        logging_steps=10,
+        logging_steps=1,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
