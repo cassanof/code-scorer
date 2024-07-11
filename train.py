@@ -197,7 +197,7 @@ def freeze_model(model):
 
 
 def main(args):
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     torch._dynamo.config.optimize_ddp = False
 
     if tokenizer.pad_token is None:  # default to eos token
